@@ -8,7 +8,6 @@ import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import org.json.JSONObject
 
 class HDFullProvider : MainAPI() {
     override var mainUrl = "https://hdfull.love"
@@ -37,19 +36,17 @@ class HDFullProvider : MainAPI() {
         )
         urls.amap { (name, url) ->
             val doc = app.get(url, cookies = latestCookie).document
-            val home =
-                doc.select("div.center div.view").amap {
-                    val title = it.selectFirst("h5.left a.link")?.attr("title")
-                    val link = it.selectFirst("h5.left a.link")?.attr("href")
-                        ?.replaceFirst("/", "$mainUrl/")
-                    val type = if (link!!.contains("/pelicula")) TvType.Movie else TvType.TvSeries
-                    val img =
-                        it.selectFirst("div.item a.spec-border-ie img.img-preview")?.attr("src")
-                    newTvSeriesSearchResponse(title!!, link, type){
-                        this.posterUrl = fixUrl(img!!)
-                        this.posterHeaders = mapOf("Referer" to "$mainUrl/")
-                    }
+            val home = doc.select("div.center div.view").amap {
+                val title = it.selectFirst("h5.left a.link")?.attr("title")
+                val link = it.selectFirst("h5.left a.link")?.attr("href")
+                    ?.replaceFirst("/", "$mainUrl/")
+                val type = if (link!!.contains("/pelicula")) TvType.Movie else TvType.TvSeries
+                val img = it.selectFirst("div.item a.spec-border-ie img.img-preview")?.attr("src")
+                newTvSeriesSearchResponse(title!!, link, type) {
+                    this.posterUrl = fixUrl(img!!)
+                    this.posterHeaders = mapOf("Referer" to "$mainUrl/")
                 }
+            }
             items.add(HomePageList(name, home))
         }
         return newHomePageResponse(items)
@@ -77,9 +74,8 @@ class HDFullProvider : MainAPI() {
             val link = it.selectFirst("h5.left a.link")?.attr("href")
                 ?.replaceFirst("/", "$mainUrl/")
             val type = if (link!!.contains("/pelicula")) TvType.Movie else TvType.TvSeries
-            val img =
-                it.selectFirst("div.item a.spec-border-ie img.img-preview")?.attr("src")
-            newTvSeriesSearchResponse(title!!, link!!, type){
+            val img = it.selectFirst("div.item a.spec-border-ie img.img-preview")?.attr("src")
+            newTvSeriesSearchResponse(title!!, link!!, type) {
                 this.posterUrl = fixUrl(img!!)
                 this.posterHeaders = mapOf("Referer" to "$mainUrl/")
             }
@@ -114,22 +110,16 @@ class HDFullProvider : MainAPI() {
         val doc = app.get(url, cookies = latestCookie).document
         val tvType = if (url.contains("pelicula")) TvType.Movie else TvType.TvSeries
         val title = doc.selectFirst("div#summary-title")?.text() ?: ""
-        val backimage =
-            doc.selectFirst("div#summary-fanart-wrapper")!!.attr("style").substringAfter("url(")
-                .substringBefore(")").trim()
-        val poster =
-            doc.selectFirst("div#summary-overview-wrapper div.show-poster img.video-page-thumbnail")!!
-                .attr("src")
-        val description =
-            doc.selectFirst("div#summary-overview-wrapper div.show-overview div.show-overview-text")!!
-                .text()
-        val tags =
-            doc.selectFirst("div#summary-overview-wrapper div.show-details p:contains(Género:)")
-                ?.text()?.substringAfter("Género:")
-                ?.split(" ")
+        val backimage = doc.selectFirst("div#summary-fanart-wrapper")!!.attr("style")
+            .substringAfter("url(").substringBefore(")").trim()
+        val poster = doc.selectFirst("div#summary-overview-wrapper div.show-poster img.video-page-thumbnail")!!
+            .attr("src")
+        val description = doc.selectFirst("div#summary-overview-wrapper div.show-overview div.show-overview-text")!!
+            .text()
+        val tags = doc.selectFirst("div#summary-overview-wrapper div.show-details p:contains(Género:)")
+            ?.text()?.substringAfter("Género:")?.split(" ")
         val year = doc.selectFirst("div#summary-overview-wrapper div.show-details p")?.text()
-            ?.substringAfter(":")?.trim()
-            ?.toIntOrNull()
+            ?.substringAfter(":")?.trim()?.toIntOrNull()
         var episodes = if (tvType == TvType.TvSeries) {
             val sid = doc.select("script").firstOrNull { it.html().contains("var sid =") }!!.html()
                 .substringAfter("var sid = '").substringBefore("';")
@@ -151,7 +141,7 @@ class HDFullProvider : MainAPI() {
                         val episodeNumber = it.episode?.toIntOrNull()
                         val epTitle = it.title?.es?.trim() ?: "Episodio $episodeNumber"
                         val epurl = "$url/temporada-${it.season}/episodio-${it.episode}"
-                        newEpisode(epurl){
+                        newEpisode(epurl) {
                             this.name = epTitle
                             this.season = seasonNumber
                             this.episode = episodeNumber
@@ -162,10 +152,7 @@ class HDFullProvider : MainAPI() {
 
         return when (tvType) {
             TvType.TvSeries -> {
-                newTvSeriesLoadResponse(
-                    title,
-                    url, tvType, episodes,
-                ) {
+                newTvSeriesLoadResponse(title, url, tvType, episodes) {
                     this.posterUrl = poster
                     this.backgroundPosterUrl = backimage
                     this.plot = description
@@ -196,11 +183,9 @@ class HDFullProvider : MainAPI() {
     ): Boolean {
         try {
             val doc = app.get(data, cookies = latestCookie).document
-            val hash =
-                doc.select("script").firstOrNull {
-                    it.html().contains("var ad =")
-                }?.html()?.substringAfter("var ad = '")
-                    ?.substringBefore("';")
+            val hash = doc.select("script").firstOrNull {
+                it.html().contains("var ad =")
+            }?.html()?.substringAfter("var ad = '")?.substringBefore("';")
             Log.d("HDFull", "Hash extraído: $hash")
 
             if (!hash.isNullOrEmpty()) {
@@ -213,17 +198,16 @@ class HDFullProvider : MainAPI() {
                     if (videoUrl.isNotEmpty()) {
                         val fixedUrl = fixHostsLinks(videoUrl)
                         Log.d("HDFull", "Cargando extractor para: $fixedUrl")
-                        loadExtractor(fixedUrl, mainUrl, subtitleCallback) { link ->
+                        loadExtractor(fixedUrl, "$mainUrl/", subtitleCallback) { link ->
                             callback.invoke(
                                 newExtractorLink(
                                     "${provider.lang}[${link.source}]",
                                     "${provider.lang}[${link.source}]",
                                     link.url,
-                                    quality = link.quality,
-                                    type = link.type,
-                                    referer = link.referer,
-                                    headers = link.headers,
-                                    extractorData = link.extractorData
+                                    link.referer,
+                                    link.quality,
+                                    link.type,
+                                    link.headers
                                 )
                             )
                         }
