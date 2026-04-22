@@ -23,7 +23,7 @@ android {
 }
 
 dependencies {
-    compileOnly("com.lagradost.cloudstream3:cloudstream:3.5.0") // Asegura versión reciente
+    compileOnly("com.github.recloudstream:cloudstream:master-SNAPSHOT")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
 }
 
