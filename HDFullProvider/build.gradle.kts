@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("kotlin-android")
+    id("cloudstream")  // nuestro plugin personalizado
 }
 
 android {
@@ -27,8 +28,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
 }
 
-version = 4
-
 cloudstream {
     language = "es"
     authors = listOf("redblacker8")
@@ -36,3 +35,5 @@ cloudstream {
     tvTypes = listOf("Movie", "TvSeries")
     iconUrl = "https://hdfullcdn.cc/favicon.ico"
 }
+
+version = 4
